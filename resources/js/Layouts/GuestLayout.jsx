@@ -1,4 +1,3 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
 
 export default function GuestLayout({ children }) {
@@ -9,10 +8,14 @@ export default function GuestLayout({ children }) {
                     <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
                 </Link>
             </div>
+        <div className="flex min-h-screen flex-col items-center justify-center">
+        
 
-            <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg dark:bg-gray-800">
+            {/* Formulaire / contenu */}
+            <div className="w-full max-w-md">
                 {children}
             </div>
         </div>
+    
     );
 }
