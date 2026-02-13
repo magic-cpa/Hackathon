@@ -2,8 +2,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import AppSidebar from '@/Components/AppSidebar';
+import DashboardChart from '@/Components/DashboardChart';
 
-export default function CooperativeDashboard({ auth }) {
+export default function CooperativeDashboard({ auth, stats  }) {
     const [activeView, setActiveView] = useState('dashboard');
 
     const renderContent = () => {
@@ -16,19 +17,13 @@ export default function CooperativeDashboard({ auth }) {
                 return <Settings />;
             case 'dashboard':
             default:
-                return <DashboardHome />;
+                return <DashboardHome stats={stats} chartData={stats?.chartData} />;
         }
     };
 
     return (
         <AuthenticatedLayout
-            user={auth.user}
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Cooperative Dashboard
-                </h2>
-            }
-        >
+            user={auth.user}>
             <Head title="Cooperative Dashboard" />
 
             <div className="flex">
@@ -42,21 +37,30 @@ export default function CooperativeDashboard({ auth }) {
     );
 }
 
-const DashboardHome = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Active Machines</h3>
-            <p className="text-3xl font-bold text-indigo-600 mt-2">12</p>
+const DashboardHome = ({ stats, chartData }) => (
+    <>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Nos Machines</h3>
+                <p className="text-3xl font-bold text-indigo-600 mt-2">{stats?.availableMachines || 0}</p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Réservation en Attente</h3>
+                <p className="text-3xl font-bold text-yellow-600 mt-2">{stats?.pendingReservations || 0}</p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Revenu Total</h3>
+                <p className="text-3xl font-bold text-green-600 mt-2">{stats?.totalRevenue ? `$${stats.totalRevenue}` : '0 DA'}</p>
+            </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Pending Requests</h3>
-            <p className="text-3xl font-bold text-yellow-600 mt-2">5</p>
+
+        {/* Chart des statistiques */}
+        <div className="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6">
+            {chartData ? <DashboardChart chartData={chartData} /> : <p className="text-gray-500">Aucune donnée pour le moment</p>}
         </div>
-        <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Total Revenue</h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">$2,400</p>
-        </div>
-    </div>
+    </>
 );
 
 const MachineManagement = () => (
