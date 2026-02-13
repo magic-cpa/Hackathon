@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-
+import ApplicationLogo from '@/Components/ApplicationLogo';
 export default function GuestLayout({ children }) {
     return (
         <div className="flex min-h-screen flex-col items-center pt-6 sm:justify-center sm:pt-0">
@@ -16,6 +16,7 @@ export default function GuestLayout({ children }) {
                 {children}
             </div>
         </div>
-    
+    </div>
+
     );
 }
