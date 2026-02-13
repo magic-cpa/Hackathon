@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\MachineAgricoleCotroller;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReservationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,6 +17,16 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
+    $user = \Illuminate\Support\Facades\Auth::user();
+
+    if ($user->hasRole('agriculteur')) {
+        return Inertia::render('Dashboard/AdminDashboard');
+    } elseif ($user->hasRole('cooperative')) {
+        return Inertia::render('Dashboard/CooperativeDashboard');
+    } elseif ($user->hasRole('agriculteur')) {
+        return Inertia::render('Dashboard/AgriculteurDashboard');
+    }
+
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -22,6 +34,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/products', [MachineAgricoleCotroller::class, 'index'])->name('products.index');
+    Route::get('/products/{machine}', [MachineAgricoleCotroller::class, 'show'])
+        ->name('products.show');
+
+    Route::post('/reservations', [ReservationController::class, 'store'])
+        ->name('reservations.store');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

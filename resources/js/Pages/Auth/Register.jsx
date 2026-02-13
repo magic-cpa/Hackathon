@@ -1,120 +1,172 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from "react";
+import { Head, useForm } from "@inertiajs/react";
+import GuestLayout from "@/Layouts/GuestLayout";
+import axios from "axios";
+import CooperativeStep1 from "@/Pages/Auth/Cooperative/step1";
+import CooperativeStep2 from "@/Pages/Auth/Cooperative/step2";
+import AgriculteurStep1 from "@/Pages/Auth/Agriculteur/step1";
+import AgriculteurStep2 from "@/Pages/Auth/Agriculteur/step2";
+import AccountStep3 from "@/Pages/Auth/AccountStep3";
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-    });
+  const [accountType, setAccountType] = useState(null);
+  const [step, setStep] = useState(0); // 0=choice, 1=profil, 2=contact, 3=account, 4=done
 
-    const submit = (e) => {
-        e.preventDefault();
+  const [profilData, setProfilData] = useState(null);
+  const [contactData, setContactData] = useState(null);
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
+  const { data, setData, processing, errors } = useForm({
+    type: "",
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+
+  const selectType = (type) => {
+    setAccountType(type);
+    setData("type", type);
+    setStep(1);
+  };
+
+  const handleProfilNext = (profil) => {
+    setProfilData(profil);
+    setStep(2);
+  };
+
+  const handleContactNext = (contact) => {
+    setContactData(contact);
+    setStep(3);
+  };
+
+  const handleAccountSubmit = async (account) => {
+    const payload = {
+      type: accountType,
+      name: account.name,
+      email: account.email,
+      password: account.password,
+      password_confirmation: account.password_confirmation,
+      profil: profilData,
+      contact: contactData,
     };
 
-    return (
-        <GuestLayout>
-            <Head title="Register" />
+    try {
+      const response = await axios.post("/register-wizard", payload);
+      setStep(4);
+      // Redirect or handle success
+      window.location.href = "/dashboard";
+    } catch (err) {
+      console.error(err);
+      // Handle error - show in form errors
+    }
+  };
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="name" value="Name" />
+  const handleBack = (targetStep) => {
+    setStep(targetStep);
+  };
 
-                    <TextInput
-                        id="name"
-                        name="name"
-                        value={data.name}
-                        className="mt-1 block w-full"
-                        autoComplete="name"
-                        isFocused={true}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                    />
+  return (
+    <GuestLayout>
+      <Head title="Register" />
 
-                    <InputError message={errors.name} className="mt-2" />
-                </div>
+      {/* Step 0: Type Selection */}
+      {step === 0 && (
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+            Choose your registration type
+          </h2>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="email" value="Email" />
+          <div className="flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={() => selectType("cooperative")}
+              className="w-full py-3 rounded-lg font-semibold transition bg-gray-200 dark:bg-gray-700 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-gray-900 dark:text-white"
+            >
+              🏢 Register as Cooperative
+            </button>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                    />
+            <button
+              type="button"
+              onClick={() => selectType("agriculteur")}
+              className="w-full py-3 rounded-lg font-semibold transition bg-gray-200 dark:bg-gray-700 hover:bg-green-100 dark:hover:bg-green-900 text-gray-900 dark:text-white"
+            >
+              🚜 Register as Agriculteur
+            </button>
+          </div>
+        </div>
+      )}
 
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
+      {/* Step 1: Profil */}
+      {step === 1 && accountType === "cooperative" && (
+        <CooperativeStep1
+          onNext={handleProfilNext}
+          onBack={() => handleBack(0)}
+          initialData={profilData}
+        />
+      )}
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+      {step === 1 && accountType === "agriculteur" && (
+        <AgriculteurStep1
+          onNext={handleProfilNext}
+          onBack={() => handleBack(0)}
+          initialData={profilData}
+        />
+      )}
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                        required
-                    />
+      {/* Step 2: Contact */}
+      {step === 2 && accountType === "cooperative" && (
+        <CooperativeStep2
+          onNext={handleContactNext}
+          onBack={() => handleBack(1)}
+          initialData={contactData}
+        />
+      )}
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
+      {step === 2 && accountType === "agriculteur" && (
+        <AgriculteurStep2
+          onNext={handleContactNext}
+          onBack={() => handleBack(1)}
+          initialData={contactData}
+        />
+      )}
 
-                <div className="mt-4">
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
+      {/* Step 3: Account */}
+      {step === 3 && (
+        <AccountStep3
+          onSubmit={handleAccountSubmit}
+          onBack={() => handleBack(2)}
+          errors={errors}
+          processing={processing}
+        />
+      )}
 
-                    <TextInput
-                        id="password_confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        value={data.password_confirmation}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
-                        required
-                    />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <Link
-                        href={route('login')}
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                    >
-                        Already registered?
-                    </Link>
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Register
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
-    );
+      {/* Step 4: Success */}
+      {step === 4 && (
+        <div className="text-center py-12">
+          <div className="mb-6">
+            <svg
+              className="mx-auto h-16 w-16 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Registration Successful!
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Your account has been created. You will be redirected shortly...
+          </p>
+        </div>
+      )}
+    </GuestLayout>
+  );
 }
+
