@@ -1,7 +1,8 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
 import { useState } from 'react';
-import AdminSidebar from '@/Components/AdminSidebar';
+import AppSidebar from '@/Components/AppSidebar';
+import { Head } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Link } from 'lucide-react';
 
 export default function AdminDashboard({ auth }) {
     const [activeView, setActiveView] = useState('dashboard');
@@ -11,7 +12,9 @@ export default function AdminDashboard({ auth }) {
             case 'users':
                 return <UserManagement />;
             case 'products':
-                return <ProductManagement />;
+                return <Link href={route("products.index")}>
+                    Products
+                </Link>
             case 'settings':
                 return <Settings />;
             case 'dashboard':
@@ -21,8 +24,7 @@ export default function AdminDashboard({ auth }) {
     };
 
     return (
-        <AuthenticatedLayout
-            user={auth.user}
+        <AuthenticatedLayout user={auth.user}
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                     Admin Dashboard
@@ -32,7 +34,7 @@ export default function AdminDashboard({ auth }) {
             <Head title="Admin Dashboard" />
 
             <div className="flex">
-                <AdminSidebar activeView={activeView} setActiveView={setActiveView} />
+                <AppSidebar role="admin" activeView={activeView} setActiveView={setActiveView} />
 
                 <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
                     {renderContent()}

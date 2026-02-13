@@ -18,6 +18,7 @@ class MachineAgricole extends Model
         'modele',
         'numero_serie',
         'etat',
+        'statut',
         'caracteristiques',
         'tarif_jour',
         'tarif_semaine',

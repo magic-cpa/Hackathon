@@ -4,21 +4,21 @@ import TextInput from "@/Components/TextInput";
 import InputError from "@/Components/InputError";
 import PrimaryButton from "@/Components/PrimaryButton";
 
-export default function AccountStep3({ onSubmit, onBack, errors, processing, prefillEmail = "" }) {
+export default function AccountStep3({ onSubmit, onBack, errors, processing }) {
   const [account, setAccount] = useState({
     name: "",
-    email: prefillEmail,
+    email: "",
     password: "",
     password_confirmation: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    if (prefillEmail) {
-      setAccount((prev) => ({ ...prev, email: prefillEmail }));
-    }
-  }, [prefillEmail]);
+//   useEffect(() => {
+//     if (prefillEmail) {
+//       setAccount((prev) => ({ ...prev, email: prefillEmail }));
+//     }
+//   }, [prefillEmail]);
 
   const handleChange = (e) => {
     setAccount((prev) => ({
@@ -63,7 +63,6 @@ export default function AccountStep3({ onSubmit, onBack, errors, processing, pre
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-100"
           required
-          readOnly
         />
         <InputError message={errors?.email} className="mt-2" />
       </div>

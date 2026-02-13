@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReservationRequestMail;
+use App\Mail\ReservationReceiptMail;
 
 class ReservationController extends Controller
 {
-    public function index() {}
-
 
     public function store(Request $request)
     {
@@ -21,7 +22,9 @@ class ReservationController extends Controller
         }
 
         if (!$user->hasRole('agriculteur')) {
-            abort(403, 'Only agriculteurs can reserve machines');
+            return redirect()
+                ->back()
+                ->with('error', 'Only agriculteurs can reserve machines');
         }
 
         $data = $request->validate([
@@ -33,7 +36,7 @@ class ReservationController extends Controller
             'etat_reservation' => ['nullable', 'string', 'max:50'],
         ]);
 
-        Reservation::create([
+        $reservation = Reservation::create([
             'id_machine' => $data['id_machine'],
             'id_agriculteur_user' => $user->id,
             'date_debut' => $data['date_debut'],
@@ -43,8 +46,20 @@ class ReservationController extends Controller
             'etat_reservation' => 'En attente',
         ]);
 
+        // Load relations for the email
+        $reservation->load(['machine.cooperative', 'agriculteur']);
+
+        // Send Email to Cooperative
+        if ($reservation->machine->cooperative) {
+            Mail::to($reservation->machine->cooperative->email)
+                ->send(new ReservationRequestMail($reservation));
+        }
+
+        // Send Email to Agriculteur
+        Mail::to($user->email)->send(new ReservationReceiptMail($reservation));
+
         return redirect()
             ->route('products.index')
-            ->with('success', 'Reservation created');
+            ->with('success', 'Votre demande de réservation a été envoyée avec succès.');
     }
 }

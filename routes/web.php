@@ -30,14 +30,21 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+//     Route::resource('users', \App\Http\Controllers\admin\UsersCotroller::class);
+// });
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/products', [MachineAgricoleCotroller::class, 'index'])->name('products.index');
+    Route::post('/products', [MachineAgricoleCotroller::class, 'store'])->name('products.store');
     Route::get('/products/{machine}', [MachineAgricoleCotroller::class, 'show'])
         ->name('products.show');
+    Route::delete('/products/{machine}', [MachineAgricoleCotroller::class, 'destroy'])
+        ->name('products.destroy');
 
     Route::post('/reservations', [ReservationController::class, 'store'])
         ->name('reservations.store');
