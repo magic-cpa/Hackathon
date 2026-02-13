@@ -1,6 +1,8 @@
 import Dropdown from '@/Components/Dropdown';
 import { Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
+import logo from '@/assets/giz-logo.svg';
+
 
 export default function Header({ user }) {
     const [isDark, setIsDark] = useState(() => {
@@ -26,10 +28,14 @@ export default function Header({ user }) {
     return (
         <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm sticky top-0 z-10">
             <div className="mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
+                <div className="flex justify-between h-30">
                     <div className="flex items-center">
-                        <Link href="/" className="font-bold text-xl text-indigo-600 dark:text-indigo-400">
-                            AgriLoan
+                        <Link href="/" className="flex items-center gap-3 group">
+                        <img
+                            src={logo}
+                            alt=""
+                            className="h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                        />
                         </Link>
                     </div>
 

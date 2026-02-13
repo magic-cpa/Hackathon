@@ -1,10 +1,16 @@
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { useEffect, useMemo, useState } from "react";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import {
+    ArrowLeft,
+    BadgeCheck,
+    CalendarDays,
+    Tag,
+    Percent,
+} from "lucide-react";
 
-
-
+/* ================== Helpers ================== */
 const safeNum = (v) => {
     const n = Number(v ?? 0);
     return Number.isFinite(n) ? n : 0;
@@ -16,35 +22,12 @@ const percentOff = (base, price) => {
     return p > 0 ? p : 0;
 };
 
-const formatDA = (v) => {
-    const n = Number(v || 0);
-    if (Number.isNaN(n)) return "0 DA";
-    return `${n.toLocaleString()} DA`;
-};
-
-const statusBadge = (etat) => {
-    if (etat === "Disponible") return "bg-green-600 text-white";
-    if (etat === "Maintenance") return "bg-amber-500 text-white";
-    return "bg-gray-700 text-white";
-};
-
-const isAvailable = (etat) => (etat || "").toLowerCase() === "disponible";
-
-const toLocalMidnight = (ymd) => {
-    if (!ymd) return null;
-    const [y, m, d] = ymd.split("-").map(Number);
-    if (!y || !m || !d) return null;
-    return new Date(y, m - 1, d);
-};
-
 const daysBetween = (start, end) => {
-    const s = toLocalMidnight(start);
-    const e = toLocalMidnight(end);
-    if (!s || !e) return 0;
-
+    if (!start || !end) return 0;
+    const s = new Date(start);
+    const e = new Date(end);
     const diff = e.getTime() - s.getTime();
     if (diff <= 0) return 0;
-
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
@@ -53,395 +36,203 @@ export default function Preview({ machine }) {
     const { flash } = props;
     const user = props?.auth?.user;
 
-    useEffect(() => {
-        if (flash?.error) {
-            Swal.fire({
-                title: 'Accès Refusé',
-                text: flash.error,
-                icon: 'error',
-                confirmButtonColor: '#4f46e5'
-            });
-        }
-        if (flash?.success) {
-            setShowReserveForm(false);
-            Swal.fire({
-                title: 'Succès !',
-                text: flash.success,
-                icon: 'success',
-                confirmButtonColor: '#4f46e5'
-            });
-        }
-    }, [flash]);
-
     const [activeImage, setActiveImage] = useState(machine.image);
-    const [showReserveForm, setShowReserveForm] = useState(false);
-
-    const isAgriculteur =
-        user?.roles?.includes?.("agriculteur") || user?.role === "agriculteur";
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
-    const [note, setNote] = useState("");
 
+    /* ================== Flash ================== */
+    useEffect(() => {
+        if (flash?.success) Swal.fire("Succès", flash.success, "success");
+        if (flash?.error) Swal.fire("Erreur", flash.error, "error");
+    }, [flash]);
+
+    /* ================== Pricing ================== */
     const pricing = useMemo(() => {
         const day = safeNum(machine.tarif_jour);
         const week = safeNum(machine.tarif_semaine);
         const month = safeNum(machine.tarif_mois);
-
         const weekBase = day * 7;
         const monthBase = day * 30;
-
-        const weekSave = Math.max(0, weekBase - week);
-        const monthSave = Math.max(0, monthBase - month);
-
-        const weekPerDay = week > 0 ? week / 7 : 0;
-        const monthPerDay = month > 0 ? month / 30 : 0;
-
         return {
             day,
             week,
             month,
-            weekBase,
-            monthBase,
-            weekSave,
-            monthSave,
-            weekPerDay,
-            monthPerDay,
             weekOff: percentOff(weekBase, week),
             monthOff: percentOff(monthBase, month),
         };
-    }, [machine.tarif_jour, machine.tarif_semaine, machine.tarif_mois]);
+    }, [machine]);
 
     const photos = useMemo(() => {
         const arr = Array.isArray(machine.photos) ? machine.photos : [];
-        const uniq = [machine.image, ...arr].filter(Boolean);
-        return [...new Set(uniq)];
+        return [...new Set([machine.image, ...arr])];
     }, [machine]);
 
-
-    const canReserve = isAvailable(machine.etat);
-
-    const canOpenReservation = isAgriculteur && canReserve;
-
-
-    const durationDays = useMemo(
-        () => daysBetween(startDate, endDate),
-        [startDate, endDate]
-    );
+    const durationDays = useMemo(() => daysBetween(startDate, endDate), [startDate, endDate]);
 
     const estimate = useMemo(() => {
-        if (!durationDays) return null;
-
-        const day = safeNum(machine.tarif_jour);
-        const week = safeNum(machine.tarif_semaine);
-        const month = safeNum(machine.tarif_mois);
-
-        if (durationDays >= 30 && month > 0) return { label: "Month", amount: month };
-        if (durationDays >= 7 && week > 0) return { label: "Week", amount: week };
-        return { label: "Day", amount: day * durationDays };
-    }, [durationDays, machine.tarif_jour, machine.tarif_semaine, machine.tarif_mois]);
+        if (!durationDays) return 0;
+        return pricing.day * durationDays;
+    }, [durationDays, pricing.day]);
 
     const submitReservation = () => {
-        if (!isAgriculteur) {
-            Swal.fire({
-                title: "Accès Refusé",
-                text: "Only agriculteurs can reserve machines",
-                icon: "error",
-                confirmButtonColor: "#4f46e5",
-            });
-            return;
-        }
-
         if (!startDate || !endDate) {
-            Swal.fire({
-                title: "Dates manquantes",
-                text: "Veuillez sélectionner les dates de début et de fin.",
-                icon: "warning",
-                confirmButtonColor: "#4f46e5",
-            });
+            Swal.fire("Attention", "Veuillez sélectionner les dates.", "warning");
             return;
         }
 
-        Swal.fire({
-            title: "Confirmer la réservation ?",
-            text: `Vous allez réserver ce matériel du ${startDate} au ${endDate}.`,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#4f46e5",
-            cancelButtonColor: "#ef4444",
-            confirmButtonText: "Oui, réserver !",
-            cancelButtonText: "Annuler",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                router.post(route("reservations.store"), {
-                    id_machine: machine.id_machine,
-                    date_debut: startDate,
-                    date_fin: endDate,
-                    note,
-                    montant: estimate?.amount ?? null,
-                    etat_reservation: "En attente",
-                });
-            }
+        router.post(route("reservations.store"), {
+            id_machine: machine.id_machine,
+            date_debut: startDate,
+            date_fin: endDate,
+            montant: estimate,
         });
     };
+
+    const isCooperateur = user?.roles?.includes("cooperative") || user?.role === "cooperative";
 
     return (
         <AuthenticatedLayout>
             <Head title={`${machine.marque} ${machine.modele}`} />
 
-            <div className="py-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-6 flex items-center justify-between">
-                        <Link
-                            href={route("products.index")}
-                            className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-950"
-                        >
-                            ← Back
-                        </Link>
+            <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100 to-green-50 py-12">
+                <div className="mx-auto max-w-7xl px-4">
 
-                        <span
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(
-                                machine.etat
-                            )}`}
-                        >
-                            {machine.etat}
-                        </span>
-                    </div>
+                    {/* ===== Bouton retour ===== */}
+                    <Link
+                        href={route("products.index")}
+                        className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-green-700 shadow-md transition hover:-translate-y-1 hover:shadow-lg"
+                    >
+                        <ArrowLeft size={16} />
+                        Retour aux machines
+                    </Link>
 
-                    <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+                    <div className="mt-10 grid grid-cols-1 gap-14 lg:grid-cols-2">
+
+                        {/* ================= GALERIE ================= */}
                         <div>
-                            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-900">
-                                <div className="aspect-[4/3] w-full bg-gray-100 dark:bg-gray-800">
-                                    <img
-                                        src={activeImage}
-                                        alt={`${machine.type_machine} ${machine.marque} ${machine.modele}`}
-                                        className="h-full w-full object-cover"
-                                        loading="lazy"
-                                    />
-                                </div>
+                            <div className="overflow-hidden rounded-3xl shadow-xl">
+                                <img
+                                    src={activeImage}
+                                    className="h-[420px] w-full object-cover transition duration-500 hover:scale-105"
+                                />
                             </div>
 
                             {photos.length > 1 && (
-                                <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-                                    {photos.map((url, i) => (
+                                <div className="mt-6 flex gap-4 overflow-x-auto">
+                                    {photos.map((img, i) => (
                                         <button
                                             key={i}
-                                            type="button"
-                                            onClick={() => setActiveImage(url)}
-                                            className={`shrink-0 overflow-hidden rounded-xl border ${activeImage === url
-                                                ? "border-gray-900 dark:border-white"
-                                                : "border-gray-200 dark:border-gray-800"
-                                                }`}
+                                            onClick={() => setActiveImage(img)}
+                                            className={`rounded-2xl overflow-hidden border-2 transition ${
+                                                activeImage === img
+                                                    ? "border-green-600 scale-105"
+                                                    : "border-transparent opacity-70 hover:opacity-100"
+                                            }`}
                                         >
-                                            <img src={url} alt="" className="h-20 w-20 object-cover" />
+                                            <img src={img} className="h-24 w-24 object-cover" />
                                         </button>
                                     ))}
                                 </div>
                             )}
                         </div>
 
-                        <div>
-                            <div className="text-sm font-semibold text-gray-500 dark:text-gray-400">
-                                {machine.type_machine}
+                        {/* ================= CONTENU ================= */}
+                        <div className="text-center">
+
+                            <h1 className="text-4xl font-bold text-green-800">{machine.type_machine}</h1>
+                            <h2 className="mt-2 text-2xl font-semibold text-gray-800">{machine.marque} {machine.modele}</h2>
+
+                            <div className="mt-4 flex justify-center">
+                                <span className="flex items-center gap-2 rounded-full bg-green-100 px-4 py-1 text-sm font-semibold text-green-700">
+                                    <BadgeCheck size={16} />
+                                    {machine.etat}
+                                </span>
                             </div>
 
-                            <h1 className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                {machine.marque} {machine.modele}
-                            </h1>
-
-                            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                                    <div className="text-xs text-gray-500 dark:text-gray-400">Day</div>
-                                    <div className="mt-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-                                        {formatDA(pricing.day)}
-                                    </div>
-                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Per day</div>
+                            {/* ===== CARTES TARIFS ===== */}
+                            <div className="mt-10 grid gap-6 sm:grid-cols-3">
+                                <div className="rounded-3xl bg-white p-6 shadow-lg transition hover:-translate-y-2 hover:shadow-2xl">
+                                    <CalendarDays className="mx-auto text-green-600" />
+                                    <div className="mt-3 font-semibold text-gray-600">Tarif journalier</div>
+                                    <div className="mt-2 text-2xl font-bold text-green-700">{pricing.day.toFixed(0)} DA</div>
                                 </div>
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">Week</div>
-
-                                        {pricing.weekOff > 0 && (
-                                            <span className="rounded-full bg-green-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                                                -{pricing.weekOff}%
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-                                        {formatDA(pricing.weekPerDay)}
-                                    </div>
-                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Per day</div>
-
-                                    {pricing.weekSave > 0 && (
-                                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                            Save {formatDA(pricing.weekSave)} vs {formatDA(pricing.weekBase)}
+                                <div className="relative rounded-3xl bg-white p-6 shadow-lg transition hover:-translate-y-2 hover:shadow-2xl">
+                                    {pricing.weekOff > 0 && (
+                                        <div className="absolute top-3 right-3 animate-blink rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                                            -{pricing.weekOff}%
                                         </div>
                                     )}
+                                    <Tag className="mx-auto text-green-600" />
+                                    <div className="mt-3 font-semibold text-gray-600">Tarif hebdomadaire</div>
+                                    <div className="mt-2 text-2xl font-bold text-green-700">{pricing.week.toFixed(0)} DA</div>
                                 </div>
-
-                                <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">Month</div>
-
-                                        {pricing.monthOff > 0 && (
-                                            <span className="rounded-full bg-green-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                                                -{pricing.monthOff}%
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-                                        {formatDA(pricing.monthPerDay)}
-                                    </div>
-                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Per day</div>
-
-                                    {pricing.monthSave > 0 && (
-                                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                            Save {formatDA(pricing.monthSave)} vs {formatDA(pricing.monthBase)}
+                                <div className="relative rounded-3xl bg-white p-6 shadow-lg transition hover:-translate-y-2 hover:shadow-2xl">
+                                    {pricing.monthOff > 0 && (
+                                        <div className="absolute top-3 right-3 animate-blink rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                                            -{pricing.monthOff}%
                                         </div>
                                     )}
+                                    <Percent className="mx-auto text-green-600" />
+                                    <div className="mt-3 font-semibold text-gray-600">Tarif mensuel</div>
+                                    <div className="mt-2 text-2xl font-bold text-green-700">{pricing.month.toFixed(0)} DA</div>
                                 </div>
                             </div>
 
-                            <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                                {!isAgriculteur && (
-                                    <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-950 dark:text-gray-200">
-                                        Only agriculteurs can reserve machines
-                                    </div>
-                                )}
-
-                                {!showReserveForm ? (
-                                    <div className="mt-3">
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            Reservation
-                                        </div>
-
-                                        <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                            Choose your dates and send a request
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowReserveForm(true)}
-                                            disabled={!isAgriculteur}
-                                            className={`mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${!isAgriculteur
-                                                ? "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                                                : "bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                                                }`}
-                                        >
-                                            Reserve now
-                                        </button>
-
-                                        {/* {!machineAvailable && (
-                                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                                This machine is not available
-                                            </div>
-                                        )} */}
-                                    </div>
-                                ) : (
-                                    <div className="mt-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                Make a reservation
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowReserveForm(false)}
-                                                className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-950"
-                                            >
-                                                Close
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                            <div>
-                                                <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                                                    Start date
-                                                </div>
-                                                <input
-                                                    type="date"
-                                                    value={startDate}
-                                                    onChange={(e) => setStartDate(e.target.value)}
-                                                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-300 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100 dark:focus:border-gray-700"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                                                    End date
-                                                </div>
-                                                <input
-                                                    type="date"
-                                                    value={endDate}
-                                                    onChange={(e) => setEndDate(e.target.value)}
-                                                    className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-300 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100 dark:focus:border-gray-700"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {estimate && (
-                                            <div className="mt-3 rounded-2xl bg-gray-50 p-4 dark:bg-gray-950">
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                    Estimate
-                                                </div>
-                                                <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                    {estimate.label} total {formatDA(estimate.amount)}
-                                                </div>
-                                                {durationDays > 0 && (
-                                                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                        {durationDays} day(s)
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        <div className="mt-3">
-                                            <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                                                Note
-                                            </div>
-                                            <textarea
-                                                value={note}
-                                                onChange={(e) => setNote(e.target.value)}
-                                                rows={3}
-                                                className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-300 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100 dark:focus:border-gray-700"
-                                                placeholder="Example I need delivery to my farm"
-                                            />
-                                        </div>
-
-                                        <div className="mt-4 flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={submitReservation}
-                                                disabled={!startDate || !endDate}
-                                                className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${!startDate || !endDate
-                                                    ? "cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                                                    : "bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Confirm reservation
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setStartDate("");
-                                                    setEndDate("");
-                                                    setNote("");
-                                                }}
-                                                className="rounded-2xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-950"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+                            {/* ===== TABLEAU CARACTÉRISTIQUES ===== */}
+                            <div className="mt-12 rounded-3xl bg-white p-6 shadow-lg">
+                                <h3 className="mb-4 text-lg font-bold text-green-800">Caractéristiques techniques</h3>
+                                <table className="w-full text-sm">
+                                    <tbody className="divide-y">
+                                        <tr><td className="py-3 font-semibold text-gray-600">Marque</td><td className="py-3">{machine.marque}</td></tr>
+                                        <tr><td className="py-3 font-semibold text-gray-600">Modèle</td><td className="py-3">{machine.modele}</td></tr>
+                                        <tr><td className="py-3 font-semibold text-gray-600">Type</td><td className="py-3">{machine.type_machine}</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
 
-                            <div className="mt-6 text-xs text-gray-500 dark:text-gray-400">
-                                Machine id {machine.id_machine}
-                            </div>
+                            {/* ===== FORMULAIRE ===== */}
+                            {/* ===== FORMULAIRE ===== */}
+{!isCooperateur && (
+    <div className="mt-12 rounded-3xl bg-white p-8 shadow-xl">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <div>
+                <label className="text-sm font-semibold text-gray-600">Date de début</label>
+                <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
+                />
+            </div>
+
+            <div>
+                <label className="text-sm font-semibold text-gray-600">Date de fin</label>
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
+                />
+            </div>
+        </div>
+
+        {durationDays > 0 && (
+            <div className="mt-6 rounded-xl bg-green-50 p-4 text-center">
+                <div className="text-sm">Durée : {durationDays} jours</div>
+                <div className="text-lg font-bold text-green-700">Montant estimé : {estimate.toFixed(0)} DA</div>
+            </div>
+        )}
+
+        <button
+            onClick={submitReservation}
+            className="mt-8 w-full rounded-2xl bg-green-600 py-3 text-lg font-semibold text-white shadow-lg transition hover:-translate-y-1 hover:bg-green-700 hover:shadow-2xl"
+        >
+            Confirmer la réservation
+        </button>
+    </div>
+)}
+
+
                         </div>
                     </div>
                 </div>
