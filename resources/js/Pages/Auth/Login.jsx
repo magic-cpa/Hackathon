@@ -1,11 +1,11 @@
+import { useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { Mail, Lock, LogIn } from 'lucide-react';
 import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import Logo from '@/assets/giz-logo.svg'; // <-- ton logo ici
+import BgImage from '@/assets/bglogin.jpg';
+import Logo from '@/assets/giz-logo.svg';
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -22,88 +22,135 @@ export default function Login({ status, canResetPassword }) {
     };
 
     return (
-        <GuestLayout>
+        <>
             <Head title="Log in" />
 
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                    {/* Logo */}
-                    <div className="flex justify-center">
-                        <img src={Logo} alt="Logo" className="h-16 w-auto" />
+            <div
+                className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+                style={{ backgroundImage: `url(${BgImage})` }}
+            >
+                {/* Overlay léger pour contraste */}
+                <div className="absolute inset-0 bg-black/30"></div>
+
+                {/* Card formulaire blanc */}
+                <div className="relative z-10 w-full max-w-md p-10 rounded-2xl 
+                                bg-white shadow-2xl text-gray-800">
+
+                    {/* Logo société */}
+                    <div className="flex justify-center mb-6">
+                        <img 
+                            src={Logo} 
+                            alt="Company Logo" 
+                            className="h-16 w-auto object-contain"
+                        />
                     </div>
 
-                    {/* Status */}
+                    <h2 className="text-2xl font-bold text-center mb-6">
+                        Connexion - GIZ Agriculture
+                    </h2>
+
                     {status && (
-                        <div className="text-center text-green-600 font-medium">
+                        <div className="text-center text-green-600 mb-4 font-medium">
                             {status}
                         </div>
                     )}
 
-                    {/* Form */}
-                    <form className="mt-6 space-y-4" onSubmit={submit}>
+                    <form className="space-y-5" onSubmit={submit}>
+
+                        {/* EMAIL */}
                         <div>
-                            <InputLabel htmlFor="email" value="Email" />
-                            <TextInput
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={data.email}
-                                className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-200"
-                                autoComplete="username"
-                                isFocused={true}
-                                onChange={(e) => setData('email', e.target.value)}
-                            />
-                            <InputError message={errors.email} className="mt-1 text-sm text-red-500" />
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                                <TextInput
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value={data.email}
+                                    placeholder="Adresse email"
+                                    className="pl-10 w-full rounded-lg border border-gray-300 
+                                               focus:ring-2 focus:ring-green-500 
+                                               text-gray-700 placeholder-gray-400"
+                                    autoComplete="username"
+                                    isFocused={true}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                />
+                            </div>
+                            <InputError message={errors.email} className="mt-1 text-red-500" />
                         </div>
 
+                        {/* PASSWORD */}
                         <div>
-                            <InputLabel htmlFor="password" value="Password" />
-                            <TextInput
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                className="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-200"
-                                autoComplete="current-password"
-                                onChange={(e) => setData('password', e.target.value)}
-                            />
-                            <InputError message={errors.password} className="mt-1 text-sm text-red-500" />
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                                <TextInput
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={data.password}
+                                    placeholder="Mot de passe"
+                                    className="pl-10 w-full rounded-lg border border-gray-300 
+                                               focus:ring-2 focus:ring-green-500 
+                                               text-gray-700 placeholder-gray-400"
+                                    autoComplete="current-password"
+                                    onChange={(e) => setData('password', e.target.value)}
+                                />
+                            </div>
+                            <InputError message={errors.password} className="mt-1 text-red-500" />
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        {/* Remember + Forgot */}
+                        <div className="flex items-center justify-between text-sm">
                             <label className="flex items-center space-x-2">
                                 <Checkbox
                                     name="remember"
                                     checked={data.remember}
                                     onChange={(e) => setData('remember', e.target.checked)}
                                 />
-                                <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+                                <span>Se souvenir de moi</span>
                             </label>
 
                             {canResetPassword && (
                                 <Link
                                     href={route('password.request')}
-                                    className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+                                    className="text-green-600 hover:text-green-800 transition"
                                 >
-                                    Forgot password?
+                                    Mot de passe oublié ?
                                 </Link>
                             )}
                         </div>
 
-                        <PrimaryButton
+                        {/* BUTTON */}
+                        <button
                             type="submit"
-                            className="w-full py-2 mt-4 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md"
                             disabled={processing}
+                            className="w-full flex items-center justify-center gap-2 
+                                       py-3 rounded-lg font-semibold
+                                       bg-gradient-to-r from-green-500 to-lime-500
+                                       hover:scale-105 transition-transform duration-300
+                                       shadow-md hover:shadow-green-400/50 text-white"
                         >
-                            Log in
-                        </PrimaryButton>
+                            <LogIn className="w-5 h-5" />
+                            Se connecter
+                        </button>
                     </form>
 
-                    <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                        © {new Date().getFullYear()} Your Company. All rights reserved.
+                    {/* Lien vers l'inscription */}
+                    <div className="mt-6 text-center">
+                    <span className="text-gray-500 mr-2">Pas encore de compte ?</span>
+                    <Link
+                        href="/register"
+                        className="text-gray-800 font-semibold hover:text-gray-600 transition"
+                    >
+                        S'inscrire
+                    </Link>
+                    </div>
+
+
+                    <p className="mt-6 text-center text-sm text-gray-500">
+                        © {new Date().getFullYear()} GIZ Agriculture
                     </p>
                 </div>
             </div>
-        </GuestLayout>
+        </>
     );
 }

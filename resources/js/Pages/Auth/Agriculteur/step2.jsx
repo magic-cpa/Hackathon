@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import PrimaryButton from "@/Components/PrimaryButton";
 
-export default function AgriculteurStep2({ onNext, onBack, initialData = null }) {
+export default function AgriculteurStep2({
+  onNext,
+  onBack,
+  initialData = null,
+  setEmailParent,
+}) {
   const [contact, setContact] = useState(
-    initialData || {
+    initialData ?? {
       nom: "",
       prenom: "",
       telephone_fixe: "",
@@ -16,38 +21,49 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
     }
   );
 
+  // Envoie l’email au parent pour pré-remplir Step3
+  useEffect(() => {
+    if (setEmailParent && contact.email_contact) {
+      setEmailParent(contact.email_contact);
+    }
+  }, [contact.email_contact, setEmailParent]);
+
   const handleChange = (e) => {
-    setContact((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    if (e?.target) {
+      setContact((prev) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (
+      !contact.nom ||
+      !contact.prenom ||
+      !contact.telephone_mobile ||
+      !contact.email_contact
+    ) {
+      alert("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+
     onNext(contact);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Step 2: Contact Information
+        <h3 className="text-lg font-semibold text-gray-900">
+          Étape 2 : Informations de contact
         </h3>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-bold">
-            ✓
-          </div>
-          <div className="h-1 w-8 bg-green-600"></div>
-          <div className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-bold">
-            2
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <InputLabel htmlFor="nom" value="Last Name" />
+          <InputLabel htmlFor="nom" value="Nom de famille" />
           <TextInput
             id="nom"
             name="nom"
@@ -59,7 +75,7 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
         </div>
 
         <div>
-          <InputLabel htmlFor="prenom" value="First Name" />
+          <InputLabel htmlFor="prenom" value="Prénom" />
           <TextInput
             id="prenom"
             name="prenom"
@@ -73,7 +89,10 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <InputLabel htmlFor="telephone_fixe" value="Landline Phone (Optional)" />
+          <InputLabel
+            htmlFor="telephone_fixe"
+            value="Téléphone fixe (facultatif)"
+          />
           <TextInput
             id="telephone_fixe"
             name="telephone_fixe"
@@ -84,7 +103,10 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
         </div>
 
         <div>
-          <InputLabel htmlFor="numero_poste" value="Position Number (Optional)" />
+          <InputLabel
+            htmlFor="numero_poste"
+            value="Numéro de poste (facultatif)"
+          />
           <TextInput
             id="numero_poste"
             name="numero_poste"
@@ -96,7 +118,7 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
       </div>
 
       <div>
-        <InputLabel htmlFor="telephone_mobile" value="Mobile Phone" />
+        <InputLabel htmlFor="telephone_mobile" value="Téléphone mobile" />
         <TextInput
           id="telephone_mobile"
           name="telephone_mobile"
@@ -108,7 +130,7 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
       </div>
 
       <div>
-        <InputLabel htmlFor="fax" value="Fax (Optional)" />
+        <InputLabel htmlFor="fax" value="Fax (facultatif)" />
         <TextInput
           id="fax"
           name="fax"
@@ -119,7 +141,7 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
       </div>
 
       <div>
-        <InputLabel htmlFor="email_contact" value="Contact Email" />
+        <InputLabel htmlFor="email_contact" value="Adresse e-mail" />
         <TextInput
           id="email_contact"
           type="email"
@@ -131,18 +153,19 @@ export default function AgriculteurStep2({ onNext, onBack, initialData = null })
         />
       </div>
 
-      <div className="flex items-center justify-between pt-6 border-t dark:border-gray-600">
+      <div className="flex items-center justify-between pt-6 border-t">
         <button
           type="button"
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          className="text-gray-600 hover:text-gray-900"
         >
-          ← Back
+          ← Retour
         </button>
 
-        <PrimaryButton>Continue →</PrimaryButton>
+        <PrimaryButton type="submit">
+          Suivant →
+        </PrimaryButton>
       </div>
     </form>
   );
 }
-

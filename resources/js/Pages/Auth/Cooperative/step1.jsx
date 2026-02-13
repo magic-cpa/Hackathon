@@ -8,7 +8,7 @@ import WilayaSelect from "@/Components/WilayaSelect";
 export default function CooperativeStep1({ onNext, onBack, initialData = null }) {
     const [profil, setProfil] = useState(
         initialData || {
-            identifiant: "",
+            
             raison_sociale: "",
             telephone: "",
             fax: "",
@@ -49,17 +49,7 @@ export default function CooperativeStep1({ onNext, onBack, initialData = null })
                 </div>
             </div>
 
-            <div>
-                <InputLabel htmlFor="identifiant" value="Identifier" />
-                <TextInput
-                    id="identifiant"
-                    name="identifiant"
-                    value={profil.identifiant}
-                    onChange={handleChange}
-                    className="mt-1 block w-full"
-                    required
-                />
-            </div>
+
 
             <div>
                 <InputLabel htmlFor="raison_sociale" value="Business Name (Raison Sociale)" />

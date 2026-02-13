@@ -1,18 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import InputError from "@/Components/InputError";
 import PrimaryButton from "@/Components/PrimaryButton";
 
-export default function AccountStep3({ onSubmit, onBack, errors, processing, initialData = null }) {
-  const [account, setAccount] = useState(
-    initialData || {
-      name: "",
-      email: "",
-      password: "",
-      password_confirmation: "",
+export default function AccountStep3({ onSubmit, onBack, errors, processing, prefillEmail = "" }) {
+  const [account, setAccount] = useState({
+    name: "",
+    email: prefillEmail,
+    password: "",
+    password_confirmation: "",
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (prefillEmail) {
+      setAccount((prev) => ({ ...prev, email: prefillEmail }));
     }
-  );
+  }, [prefillEmail]);
 
   const handleChange = (e) => {
     setAccount((prev) => ({
@@ -29,96 +35,86 @@ export default function AccountStep3({ onSubmit, onBack, errors, processing, ini
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Step 3: Create Account
+        <h3 className="text-lg font-semibold text-gray-900">
+          Étape 3 : Créer le compte
         </h3>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-bold">
-            ✓
-          </div>
-          <div className="h-1 w-8 bg-green-600"></div>
-          <div className="flex items-center justify-center w-8 h-8 bg-indigo-600 text-white rounded-full text-sm font-bold">
-            3
-          </div>
-        </div>
       </div>
 
       <div>
-        <InputLabel htmlFor="name" value="Full Name" />
+        <InputLabel htmlFor="name" value="Nom complet" />
         <TextInput
           id="name"
           name="name"
           value={account.name}
           onChange={handleChange}
           className="mt-1 block w-full"
-          autoComplete="name"
           required
         />
-        <InputError message={errors.name} className="mt-2" />
+        <InputError message={errors?.name} className="mt-2" />
       </div>
 
       <div>
-        <InputLabel htmlFor="email" value="Email Address" />
+        <InputLabel htmlFor="email" value="Adresse e-mail" />
         <TextInput
           id="email"
           type="email"
           name="email"
           value={account.email}
           onChange={handleChange}
-          className="mt-1 block w-full"
-          autoComplete="email"
+          className="mt-1 block w-full bg-gray-100"
           required
+          readOnly
         />
-        <InputError message={errors.email} className="mt-2" />
+        <InputError message={errors?.email} className="mt-2" />
       </div>
 
       <div>
-        <InputLabel htmlFor="password" value="Password" />
-        <TextInput
-          id="password"
-          type="password"
-          name="password"
-          value={account.password}
-          onChange={handleChange}
-          className="mt-1 block w-full"
-          autoComplete="new-password"
-          required
-        />
-        <InputError message={errors.password} className="mt-2" />
+        <InputLabel htmlFor="password" value="Mot de passe" />
+        <div className="relative">
+          <TextInput
+            id="password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={account.password}
+            onChange={handleChange}
+            className="mt-1 block w-full pr-10"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute top-1/2 right-2 transform -translate-y-1/2 text-gray-500"
+          >
+            {showPassword ? "Masquer" : "Voir"}
+          </button>
+        </div>
+        <InputError message={errors?.password} className="mt-2" />
       </div>
 
       <div>
-        <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
+        <InputLabel htmlFor="password_confirmation" value="Confirmer le mot de passe" />
         <TextInput
           id="password_confirmation"
-          type="password"
+          type={showPassword ? "text" : "password"}
           name="password_confirmation"
           value={account.password_confirmation}
           onChange={handleChange}
-          className="mt-1 block w-full"
-          autoComplete="new-password"
+          className="mt-1 block w-full pr-10"
           required
         />
-        <InputError message={errors.password_confirmation} className="mt-2" />
+        <InputError message={errors?.password_confirmation} className="mt-2" />
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4 mt-4">
-        <p className="text-sm text-blue-800 dark:text-blue-300">
-          ✓ Your account will be created and you'll get your assigned role with permissions
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between pt-6 border-t dark:border-gray-600">
+      <div className="flex items-center justify-between pt-6 border-t">
         <button
           type="button"
           onClick={onBack}
-          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          className="text-gray-600 hover:text-gray-900"
         >
-          ← Back
+          ← Retour
         </button>
-
         <PrimaryButton disabled={processing}>
-          {processing ? "Creating Account..." : "Create Account"}
+          {processing ? "Création..." : "Créer le compte"}
         </PrimaryButton>
       </div>
     </form>
