@@ -9,9 +9,53 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReservationRequestMail;
 use App\Mail\ReservationReceiptMail;
+use Inertia\Inertia;
 
 class ReservationController extends Controller
 {
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->hasRole('cooperative')) {
+            abort(403);
+        }
+
+        // Get reservations for machines owned by this cooperative
+        $reservations = Reservation::with(['machine', 'agriculteur'])
+            ->whereHas('machine', function ($query) use ($user) {
+                $query->where('id_cooperative_user', $user->id);
+            })
+            ->orderByDesc('id_reservation')
+            ->get();
+
+        // dd($reservations,$user);
+
+        return Inertia::render('Reservation/Table', [
+            'reservations' => $reservations
+        ]);
+    }
+
+
+    public function update(Request $request, Reservation $reservation)
+    {
+        $user = $request->user();
+
+        // Check if the machine belongs to the cooperative
+        $reservation->load('machine');
+        if ($reservation->machine->id_cooperative_user !== $user->id && !$user->hasRole('admin')) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'etat_reservation' => ['required', 'string', 'in:Validé,Refusé,Terminé'],
+        ]);
+
+        $reservation->update($validated);
+
+        return redirect()->back()->with('success', 'Statut de réservation mis à jour.');
+    }
 
     public function store(Request $request)
     {

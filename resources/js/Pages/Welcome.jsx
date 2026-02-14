@@ -4,6 +4,7 @@ import Hero from "@/pages/Homepage/Hero";
 import ProductsGrid from "@/pages/Homepage/ProductsGrid";
 import Footer from "@/pages/Homepage/Footer";
 import ServicesSection from "@/pages/Homepage/ServicesSection";
+import Pricing from "@/pages/Homepage/Pricing";
 export default function Welcome({ auth }) {
     return (
         <>
@@ -13,6 +14,7 @@ export default function Welcome({ auth }) {
             <Hero />
             <ProductsGrid/>
             <ServicesSection />
+            <Pricing/>
             <Footer />
         </>
     );
