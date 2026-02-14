@@ -22,13 +22,27 @@ const percentOff = (base, price) => {
     return p > 0 ? p : 0;
 };
 
+const toISODate = (d) => {
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+};
+
+const todayISO = toISODate(new Date());
+
+const parseISODateUTC = (iso) => {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return Date.UTC(y, m - 1, d);
+};
+
 const daysBetween = (start, end) => {
-    if (!start || !end) return 0;
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = e.getTime() - s.getTime();
-    if (diff <= 0) return 0;
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const s = parseISODateUTC(start);
+  const e = parseISODateUTC(end);
+  if (s === null || e === null) return 0;
+  const diff = e - s;
+  if (diff <= 0) return 0;
+  return Math.ceil(diff / 86400000);
 };
 
 export default function Preview({ machine }) {
@@ -123,11 +137,10 @@ export default function Preview({ machine }) {
                                         <button
                                             key={i}
                                             onClick={() => setActiveImage(img)}
-                                            className={`rounded-2xl overflow-hidden border-2 transition ${
-                                                activeImage === img
-                                                    ? "border-green-600 scale-105"
-                                                    : "border-transparent opacity-70 hover:opacity-100"
-                                            }`}
+                                            className={`rounded-2xl overflow-hidden border-2 transition ${activeImage === img
+                                                ? "border-green-600 scale-105"
+                                                : "border-transparent opacity-70 hover:opacity-100"
+                                                }`}
                                         >
                                             <img src={img} className="h-24 w-24 object-cover" />
                                         </button>
@@ -191,46 +204,51 @@ export default function Preview({ machine }) {
                             </div>
 
                             {/* ===== FORMULAIRE ===== */}
-                            {/* ===== FORMULAIRE ===== */}
-{!isCooperateur && (
-    <div className="mt-12 rounded-3xl bg-white p-8 shadow-xl">
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
-            <div>
-                <label className="text-sm font-semibold text-gray-600">Date de début</label>
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
-                />
-            </div>
+                            {!isCooperateur && (
+                                <div className="mt-12 rounded-3xl bg-white p-8 shadow-xl">
+                                    <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-600">Date de début</label>
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                min={todayISO}
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    setStartDate(v);
+                                                    if (endDate < v) setEndDate(v);
+                                                }}
+                                                className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
+                                            />
+                                        </div>
 
-            <div>
-                <label className="text-sm font-semibold text-gray-600">Date de fin</label>
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
-                />
-            </div>
-        </div>
+                                        <div>
+                                            <label className="text-sm font-semibold text-gray-600">Date de fin</label>
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                min={startDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
+                                            />
+                                        </div>
+                                    </div>
 
-        {durationDays > 0 && (
-            <div className="mt-6 rounded-xl bg-green-50 p-4 text-center">
-                <div className="text-sm">Durée : {durationDays} jours</div>
-                <div className="text-lg font-bold text-green-700">Montant estimé : {estimate.toFixed(0)} DA</div>
-            </div>
-        )}
+                                    {durationDays > 0 && (
+                                        <div className="mt-6 rounded-xl bg-green-50 p-4 text-center">
+                                            <div className="text-sm">Durée : {durationDays} jours</div>
+                                            <div className="text-lg font-bold text-green-700">Montant estimé : {estimate.toFixed(0)} DA</div>
+                                        </div>
+                                    )}
 
-        <button
-            onClick={submitReservation}
-            className="mt-8 w-full rounded-2xl bg-green-600 py-3 text-lg font-semibold text-white shadow-lg transition hover:-translate-y-1 hover:bg-green-700 hover:shadow-2xl"
-        >
-            Confirmer la réservation
-        </button>
-    </div>
-)}
+                                    <button
+                                        onClick={submitReservation}
+                                        className="mt-8 w-full rounded-2xl bg-green-600 py-3 text-lg font-semibold text-white shadow-lg transition hover:-translate-y-1 hover:bg-green-700 hover:shadow-2xl"
+                                    >
+                                        Confirmer la réservation
+                                    </button>
+                                </div>
+                            )}
 
 
                         </div>

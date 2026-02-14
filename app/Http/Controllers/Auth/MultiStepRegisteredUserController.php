@@ -8,6 +8,8 @@ use App\Models\ProfilCooperative;
 use App\Models\ContactCooperative;
 use App\Models\ProfilAgriculteur;
 use App\Models\ContactAgriculteur;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +22,26 @@ class MultiStepRegisteredUserController extends Controller
     /**
      * Handle multi-step registration for both cooperative and agriculteur
      */
+    private function generateAgriculteurIdentifiant(int $userId): string
+    {
+        return DB::transaction(function () use ($userId) {
+            for ($i = 0; $i < 10; $i++) {
+                $candidate =
+                    'AGRI-' .
+                    str_pad((string) $userId, 6, '0', STR_PAD_LEFT) .
+                    '-' . strtoupper(Str::random(4));
+
+                $exists = DB::table('profil_agriculteurs')
+                    ->where('identifiant', $candidate)
+                    ->exists();
+
+                if (!$exists) return $candidate;
+            }
+
+            throw new \RuntimeException('Unable to generate unique identifiant');
+        });
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {
@@ -55,7 +77,6 @@ class MultiStepRegisteredUserController extends Controller
             } else if ($request->type === 'agriculteur') {
                 $request->validate([
                     'profil' => 'required|array',
-                    'profil.identifiant' => 'required|string|max:255|unique:profil_agriculteurs,identifiant',
                     'profil.raison_sociale' => 'required|string|max:255',
                     'profil.telephone_exploitation' => 'nullable|string',
                     'profil.fax' => 'nullable|string',
@@ -110,9 +131,12 @@ class MultiStepRegisteredUserController extends Controller
                 // Assign cooperative role
                 $user->assignRole('cooperative');
             } else if ($request->type === 'agriculteur') {
+
+                $identifiant = $this->generateAgriculteurIdentifiant($user->id);
+
                 ProfilAgriculteur::create([
                     'id_user' => $user->id,
-                    'identifiant' => $request->profil['identifiant'],
+                    'identifiant' => $identifiant,
                     'raison_sociale' => $request->profil['raison_sociale'],
                     'telephone_exploitation' => $request->profil['telephone_exploitation'] ?? null,
                     'fax' => $request->profil['fax'] ?? null,
@@ -134,7 +158,6 @@ class MultiStepRegisteredUserController extends Controller
                     'email_contact' => $request->contact['email_contact'],
                 ]);
 
-                // Assign agriculteur role
                 $user->assignRole('agriculteur');
             }
 

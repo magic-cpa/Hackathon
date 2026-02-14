@@ -3,6 +3,7 @@
 use App\Http\Controllers\MachineAgricoleCotroller;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
+use App\Models\Reservation;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,6 +16,8 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+# agricole-machine api
+Route::get('/machines', [MachineAgricoleCotroller::class, 'api']);
 
 Route::get('/dashboard', function () {
     $user = \Illuminate\Support\Facades\Auth::user();
@@ -22,17 +25,26 @@ Route::get('/dashboard', function () {
     if ($user->hasRole('agriculteur')) {
         return Inertia::render('Dashboard/AdminDashboard');
     } elseif ($user->hasRole('cooperative')) {
-        return Inertia::render('Dashboard/CooperativeDashboard');
+        $latestReservations = Reservation::with([
+                'machine:id_machine,marque,modele,id_cooperative_user',
+                'agriculteur:id,name'
+            ])
+            ->whereHas('machine', function ($q) use ($user) {
+                $q->where('id_cooperative_user', $user->id);
+            })
+            ->orderByDesc('id_reservation')
+            ->limit(10)
+            ->get();
+
+        return Inertia::render('Dashboard/CooperativeDashboard', [
+            'latestReservations' => $latestReservations,
+        ]);
     } elseif ($user->hasRole('agriculteur')) {
         return Inertia::render('Dashboard/AgriculteurDashboard');
     }
 
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
-
-// Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-//     Route::resource('users', \App\Http\Controllers\admin\UsersCotroller::class);
-// });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -41,11 +53,26 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/products', [MachineAgricoleCotroller::class, 'index'])->name('products.index');
     Route::post('/products', [MachineAgricoleCotroller::class, 'store'])->name('products.store');
-    Route::get('/products/{machine}', [MachineAgricoleCotroller::class, 'show'])
-        ->name('products.show');
-    Route::delete('/products/{machine}', [MachineAgricoleCotroller::class, 'destroy'])
-        ->name('products.destroy');
+    Route::get('/products/create', [MachineAgricoleCotroller::class, 'create'])->name('products.create');
+    Route::get('/products/{machine}', [MachineAgricoleCotroller::class, 'show'])->name('products.show');
 
+    Route::get('/products-table', [MachineAgricoleCotroller::class, 'table'])->name('products.table');
+
+    Route::get('/products/{product}/edit', [MachineAgricoleCotroller::class, 'edit'])->name('products.edit');
+
+    Route::post('/products/{machine}', [MachineAgricoleCotroller::class, 'update'])->name('products.update');
+
+    Route::delete('/products/{machine}', [MachineAgricoleCotroller::class, 'destroy'])->name('products.destroy');
+
+    // Page cooperative
+    Route::get('/cooperative/reservations', [ReservationController::class, 'index'])
+        ->name('cooperative.reservations.index');
+
+    // Update status cooperative
+    Route::patch('/cooperative/reservations/{reservation}', [ReservationController::class, 'update'])
+        ->name('cooperative.reservations.update');
+
+    // Create reservation agriculteur
     Route::post('/reservations', [ReservationController::class, 'store'])
         ->name('reservations.store');
 });
