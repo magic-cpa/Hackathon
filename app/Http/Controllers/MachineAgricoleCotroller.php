@@ -15,13 +15,28 @@ use Inertia\Inertia;
 class MachineAgricoleCotroller extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $machines = MachineAgricole::with('photos')
-            ->orderByDesc('id_machine')
-            ->get()
-            ->map(function ($m) {
-                $firstPhoto = $m->photos->first();
+        $q = trim((string) $request->query('q', ''));
+        $status = strtolower((string) $request->query('status', 'all'));
+
+        $machines = MachineAgricole::query()
+            ->with(['photos' => fn($q) => $q->limit(1)])
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($qq) use ($q) {
+                    $qq->where('type_machine', 'like', "%{$q}%")
+                        ->orWhere('marque', 'like', "%{$q}%")
+                        ->orWhere('modele', 'like', "%{$q}%")
+                        ->orWhere('etat', 'like', "%{$q}%");
+                });
+            })
+            ->when($status !== 'all', function ($query) use ($status) {
+                $query->whereRaw('LOWER(etat) = ?', [$status]);
+            })
+            ->latest('id_machine')
+            ->paginate(12)
+            ->through(function ($m) {
+                $first = $m->photos->first();
                 return [
                     'id_machine' => $m->id_machine,
                     'type_machine' => $m->type_machine,
@@ -29,15 +44,19 @@ class MachineAgricoleCotroller extends Controller
                     'modele' => $m->modele,
                     'etat' => $m->etat,
                     'tarif_jour' => (string) $m->tarif_jour,
-                    'tarif_semaine' => (string) $m->tarif_semaine,
-                    'tarif_mois' => (string) $m->tarif_mois,
-                    'image' => $firstPhoto ? asset('storage/' . $firstPhoto->url) : asset('storage/products/product1.jpg'),
-                    'photos' => $m->photos->map(fn($p) => asset('storage/products/' . $p->url)),
+                    'image' => $first
+                        ? asset('storage/' . $first->url)
+                        : asset('storage/products/product1.jpg'),
                 ];
-            });
+            })
+            ->withQueryString();
 
         return Inertia::render('Products/Index', [
             'machines' => $machines,
+            'filters' => [
+                'q' => $q,
+                'status' => $status,
+            ],
         ]);
     }
 
@@ -101,8 +120,24 @@ class MachineAgricoleCotroller extends Controller
                 ->values(),
         ];
 
+        $reserved = Reservation::query()
+            ->where('id_machine', $machine->id_machine)
+            ->whereIn('etat_reservation', ['En attente', 'Validé'])
+            ->orderBy('date_debut')
+            ->get(['id_reservation', 'date_debut', 'date_fin', 'etat_reservation'])
+            ->map(function ($r) {
+                return [
+                    'id_reservation' => $r->id_reservation,
+                    'date_debut' => optional($r->date_debut)->format('Y-m-d'),
+                    'date_fin' => optional($r->date_fin)->format('Y-m-d'),
+                    'etat_reservation' => $r->etat_reservation,
+                ];
+            })
+            ->values();
+
         return Inertia::render('Products/Preview', [
             'machine' => $data,
+            'reserved' => $reserved,
         ]);
     }
 

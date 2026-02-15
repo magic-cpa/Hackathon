@@ -9,6 +9,7 @@ import {
     Tag,
     Percent,
 } from "lucide-react";
+import { DayPicker } from "react-day-picker";
 
 /* ================== Helpers ================== */
 const safeNum = (v) => {
@@ -23,29 +24,49 @@ const percentOff = (base, price) => {
 };
 
 const toISODate = (d) => {
-  const tz = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tz).toISOString().slice(0, 10);
 };
 
 const todayISO = toISODate(new Date());
 
 const parseISODateUTC = (iso) => {
-  if (!iso) return null;
-  const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return Date.UTC(y, m - 1, d);
+    if (!iso) return null;
+    const [y, m, d] = iso.split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return Date.UTC(y, m - 1, d);
 };
 
 const daysBetween = (start, end) => {
-  const s = parseISODateUTC(start);
-  const e = parseISODateUTC(end);
-  if (s === null || e === null) return 0;
-  const diff = e - s;
-  if (diff <= 0) return 0;
-  return Math.ceil(diff / 86400000);
+    const s = parseISODateUTC(start);
+    const e = parseISODateUTC(end);
+    if (s === null || e === null) return 0;
+    const diff = e - s;
+    if (diff <= 0) return 0;
+    return Math.ceil(diff / 86400000);
 };
 
-export default function Preview({ machine }) {
+const expandRangesToSet = (ranges) => {
+    const set = new Set();
+
+    for (const r of ranges || []) {
+        const s = (r.date_debut || "").slice(0, 10);
+        const e = (r.date_fin || "").slice(0, 10);
+        if (!s || !e) continue;
+
+        const sT = parseISODateUTC(s);
+        const eT = parseISODateUTC(e);
+        if (sT === null || eT === null) continue;
+
+        for (let t = sT; t <= eT; t += 86400000) {
+            set.add(toISODate(new Date(t)));
+        }
+    }
+
+    return set;
+};
+
+export default function Preview({ machine, reserved = [] }) {
     const { props } = usePage();
     const { flash } = props;
     const user = props?.auth?.user;
@@ -100,6 +121,24 @@ export default function Preview({ machine }) {
             date_fin: endDate,
             montant: estimate,
         });
+    };
+
+    const reservedSet = useMemo(() => expandRangesToSet(reserved), [reserved]);
+
+    const modifiers = useMemo(() => {
+        return {
+            reserved: (date) => reservedSet.has(toISODate(date)),
+            selectedRange: (date) => {
+                if (!startDate || !endDate) return false;
+                const iso = toISODate(date);
+                return iso >= startDate && iso <= endDate;
+            },
+        };
+    }, [reservedSet, startDate, endDate]);
+
+    const modifiersClassNames = {
+        reserved: "rdp-reserved",
+        selectedRange: "rdp-selectedRange",
     };
 
     const isCooperateur = user?.roles?.includes("cooperative") || user?.role === "cooperative";
@@ -206,31 +245,61 @@ export default function Preview({ machine }) {
                             {/* ===== FORMULAIRE ===== */}
                             {!isCooperateur && (
                                 <div className="mt-12 rounded-3xl bg-white p-8 shadow-xl">
-                                    <div className="mt-6 grid gap-6 sm:grid-cols-2">
-                                        <div>
-                                            <label className="text-sm font-semibold text-gray-600">Date de début</label>
-                                            <input
-                                                type="date"
-                                                value={startDate}
-                                                min={todayISO}
-                                                onChange={(e) => {
-                                                    const v = e.target.value;
-                                                    setStartDate(v);
-                                                    if (endDate < v) setEndDate(v);
-                                                }}
-                                                className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
-                                            />
-                                        </div>
+                                    <div className="mt-6">
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-center">
+                                            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                                                <div className="mb-3 flex items-center justify-between">
+                                                    <div className="text-sm font-semibold text-gray-700">
+                                                        Choisir les dates
+                                                    </div>
 
-                                        <div>
-                                            <label className="text-sm font-semibold text-gray-600">Date de fin</label>
-                                            <input
-                                                type="date"
-                                                value={endDate}
-                                                min={startDate}
-                                                onChange={(e) => setEndDate(e.target.value)}
-                                                className="mt-2 w-full rounded-xl border px-4 py-2 focus:ring-2 focus:ring-green-400"
-                                            />
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                                                        <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                                                        Date réservée (indisponible)
+                                                    </div>
+                                                </div>
+
+                                                <DayPicker
+                                                    mode="range"
+                                                    fromDate={new Date()}
+                                                    selected={{
+                                                        from: startDate ? new Date(startDate) : undefined,
+                                                        to: endDate ? new Date(endDate) : undefined,
+                                                    }}
+                                                    onSelect={(range) => {
+                                                        const from = range?.from ? toISODate(range.from) : "";
+                                                        const to = range?.to ? toISODate(range.to) : "";
+                                                        setStartDate(from || todayISO);
+                                                        setEndDate(to || (from || todayISO));
+                                                    }}
+                                                    disabled={(date) => reservedSet.has(toISODate(date)) || toISODate(date) < todayISO}
+                                                    modifiers={modifiers}
+                                                    modifiersClassNames={modifiersClassNames}
+                                                />
+                                            </div>
+
+                                            <div className="w-full sm:w-72">
+                                                <div className="grid gap-3">
+                                                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                                                        <div className="text-xs text-gray-500">Début</div>
+                                                        <div className="text-sm font-semibold text-gray-900">{startDate || "-"}</div>
+                                                    </div>
+
+                                                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                                                        <div className="text-xs text-gray-500">Fin</div>
+                                                        <div className="text-sm font-semibold text-gray-900">{endDate || "-"}</div>
+                                                    </div>
+
+                                                    {durationDays > 0 && (
+                                                        <div className="rounded-2xl bg-green-50 p-4 text-center">
+                                                            <div className="text-sm">Durée {durationDays} jours</div>
+                                                            <div className="text-lg font-bold text-green-700">
+                                                                Montant {estimate.toFixed(0)} DA
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
