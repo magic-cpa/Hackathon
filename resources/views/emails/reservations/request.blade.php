@@ -1,26 +1,44 @@
 <x-mail::message>
-# Nouvelle Demande de Réservation
+# Nouvelle demande de réservation
 
 Bonjour,
 
-Un agriculteur souhaite réserver l'un de vos matériels.
+Un agriculteur a soumis une nouvelle demande pour l’un de vos matériels.
 
-**Détails du matériel :**
-- **Type :** {{ $reservation->machine->type_machine }}
-- **Marque :** {{ $reservation->machine->marque }}
-- **Modèle :** {{ $reservation->machine->modele }}
+---
 
-**Détails de la réservation :**
-- **De :** {{ $reservation->date_debut->format('d/m/Y') }}
-- **À :** {{ $reservation->date_fin->format('d/m/Y') }}
-- **Client :** {{ $reservation->agriculteur->name }}
-- **Note :** {{ $reservation->note ?? 'N/A' }}
-- **Montant estimé :** {{ number_format($reservation->montant, 2) }} DA
+## Matériel concerné
 
-<x-mail::button :url="config('app.url') . '/dashboard'">
-Voir sur le tableau de bord
+**Type**
+{{ $reservation->machine->type_machine }}
+
+**Marque**
+{{ $reservation->machine->marque }}
+
+**Modèle**
+{{ $reservation->machine->modele }}
+
+---
+
+## Détails de la réservation
+
+**Période**
+Du {{ $reservation->date_debut->format('d/m/Y') }}
+Au {{ $reservation->date_fin->format('d/m/Y') }}
+
+**Client**
+{{ $reservation->agriculteur->name }}
+
+**Note**
+{{ $reservation->note ?? 'Aucune note fournie' }}
+
+**Montant estimé**
+{{ number_format($reservation->montant, 2) }} DA
+
+<x-mail::button :url="route('cooperative.reservations.index')">
+Consulter la demande
 </x-mail::button>
 
-Merci,<br>
+Merci,
 {{ config('app.name') }}
 </x-mail::message>

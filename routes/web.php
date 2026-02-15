@@ -3,6 +3,7 @@
 use App\Http\Controllers\MachineAgricoleCotroller;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\ReservationPdfController;
 use App\Models\Reservation;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -22,13 +23,13 @@ Route::get('/machines', [MachineAgricoleCotroller::class, 'api']);
 Route::get('/dashboard', function () {
     $user = \Illuminate\Support\Facades\Auth::user();
 
-    if ($user->hasRole('agriculteur')) {
+    if ($user->hasRole('admin')) {
         return Inertia::render('Dashboard/AdminDashboard');
     } elseif ($user->hasRole('cooperative')) {
         $latestReservations = Reservation::with([
-                'machine:id_machine,marque,modele,id_cooperative_user',
-                'agriculteur:id,name'
-            ])
+            'machine:id_machine,marque,modele,id_cooperative_user',
+            'agriculteur:id,name'
+        ])
             ->whereHas('machine', function ($q) use ($user) {
                 $q->where('id_cooperative_user', $user->id);
             })
@@ -40,7 +41,18 @@ Route::get('/dashboard', function () {
             'latestReservations' => $latestReservations,
         ]);
     } elseif ($user->hasRole('agriculteur')) {
-        return Inertia::render('Dashboard/AgriculteurDashboard');
+        $myReservations = Reservation::with([
+            'machine:id_machine,marque,modele,type_machine',
+        ])
+            ->where('id_agriculteur_user', $user->id)
+            ->orderByDesc('id_reservation')
+            ->paginate(10)
+            ->withQueryString();
+        // dd($myReservations);
+
+        return Inertia::render('Dashboard/AgriculteurDashboard', [
+            'myReservations' => $myReservations,
+        ]);
     }
 
     return Inertia::render('Dashboard');
@@ -75,6 +87,10 @@ Route::middleware('auth')->group(function () {
     // Create reservation agriculteur
     Route::post('/reservations', [ReservationController::class, 'store'])
         ->name('reservations.store');
+
+    Route::get('/reservations/{reservation}/bon', [ReservationPdfController::class, 'show'])
+        ->name('reservations.bon')
+        ->middleware('signed');
 });
 
 require __DIR__ . '/auth.php';

@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.rdp-reserved .rdp-day_button {
+  background: rgb(254 226 226);
+  color: rgb(185 28 28);
+  border: 1px solid rgb(252 165 165);
+}
+
+.rdp-reserved .rdp-day_button:hover {
+  background: rgb(254 202 202);
+}
+
+.rdp-reserved {
+  position: relative;
+}
+
+.rdp-reserved::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgb(220 38 38);
+}
